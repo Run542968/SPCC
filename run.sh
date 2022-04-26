@@ -24,6 +24,8 @@ CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_18 --dataset_name 'mo
 CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_19 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.1 --epoch_num 100 --Cur.mine_interval 300
 # BCE(y,per_scores)+BCE(y,soc_scores) -> BCE(y,per_scores+soc_scores); sigmoid normalization
 CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_20 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.05 --epoch_num 100 --Cur.mine_interval 300
+# BCE(y,per_scores)+BCE(y,soc_scores) -> BCE(y,(per_scores+soc_scores)/2); sigmoid normalization
+CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_21 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 300
 
 
 ## add Cur_mining(中值越靠近左侧，左侧的斜率越小)

@@ -15,23 +15,42 @@ NCF:
   layers_num: 3
   score_weight: 1
   dropout: 0.0
+  criterion: 'v1'
 
 Social:
   dim: 64
   score_weight: 1
+  sigmoid_norm: True
 
 Cur:
   mine_interval: 80
+  alpha: 1.3
+  bias: -1
+  fusion: 'v1'
 
 optim:
   lr: 0.001
   weight_decay: 0
 
 losses:
-  NCF: 
-    weight: 1
-  Social: 
-    bpr_weight: 1
+  v1:
+    ncf_weight: 1
+    social_weight: 1
+  v2: 
+    acc_weight: 1
+    cur_weight: 1
+  v3: 
+    ncf_weight: 1
+    social_weight: 1
+    acc_weight: 1
+    cur_weight: 1
+  v4: 
+    ncf_weight: 1
+    social_weight: 1
+    ncf_huber: 1
+    social_huber: 1
+    acc_weight: 1
+    cur_weight: 1
 
 
 test: 

@@ -27,9 +27,8 @@ class NCF(nn.Module):
 		self.user_num=user_num
 		self.UserItemNet=UserItemNet
 
-
-		self.train_user_item=train_user_item
-		self.train_item_user=self._transform_dict(self.train_user_item)
+		# self.train_user_item=train_user_item
+		# self.train_item_user=self._transform_dict(self.train_user_item)
 
 		self.embed_user_GMF = nn.Embedding(user_num, self.factor_num)
 		self.embed_item_GMF = nn.Embedding(item_num, self.factor_num)
@@ -51,8 +50,9 @@ class NCF(nn.Module):
 		else:
 			predict_size = self.factor_num * 2
 		self.predict_layer = nn.Linear(predict_size, 1)
-		
-		# modeling relation
+		self.loss_function=nn.BCEWithLogitsLoss()
+
+		# modeling relation for social
 		self.item_rel_lookup=nn.Embedding(self.item_num,self.factor_num)	
 		self.user_rel_lookup=nn.Embedding(self.user_num,self.factor_num)
 		self.att=nn.Linear(self.factor_num,self.factor_num)
@@ -60,8 +60,7 @@ class NCF(nn.Module):
 		# cur
 		self.para_lookup=None
 		self.Cur_mining=False
-		
-		self.loss_function=nn.BCEWithLogitsLoss()
+		self.Huber_loss=nn.SmoothL1Loss()
 
 		self._init_weight_()
 
@@ -110,17 +109,17 @@ class NCF(nn.Module):
 			self.predict_layer.weight.data.copy_(0.5 * predict_weight)
 			self.predict_layer.bias.data.copy_(0.5 * precit_bias)
     
-	def _transform_dict(self,train_user_item):
+	# def _transform_dict(self,train_user_item):
 		
-		train_item_user=dict()
+	# 	train_item_user=dict()
 		
-		for user in train_user_item.keys():
-			for item in train_user_item[user]:
-				if item not in train_item_user.keys():
-					train_item_user[item]=set()
-				train_item_user[item].add(user)
+	# 	for user in train_user_item.keys():
+	# 		for item in train_user_item[user]:
+	# 			if item not in train_item_user.keys():
+	# 				train_item_user[item]=set()
+	# 			train_item_user[item].add(user)
 				
-		return train_item_user
+	# 	return train_item_user
 
 	# def _get_relation(self):
 	# 	'''
@@ -157,8 +156,12 @@ class NCF(nn.Module):
 		all_item_embedding=self.item_rel_lookup(all_item_id)
 		UserItemNet_mask=torch.from_numpy(self.UserItemNet.toarray()).to(self.args.basic.device) # [user_num,item_num]
 		keys=self.att(all_user_embedding) # [user_num,dim]->[user_num,dim]
-		qk=torch.sigmoid(torch.mm(all_item_embedding,torch.transpose(keys,1,0))) #[item_num,dim]x[dim,user_num]->[item_num,user_num] #NOTE:这里其实存在一个归一化和保证非负性的问题，考虑使用sigmoid，因为softmax会平均包括负样本的所有信息
-		# qk=torch.mm(all_item_embedding,torch.transpose(keys,1,0))
+		
+		if self.args.Social.sigmoid_norm:
+			qk=torch.sigmoid(torch.mm(all_item_embedding,torch.transpose(keys,1,0))) #[item_num,dim]x[dim,user_num]->[item_num,user_num] #NOTE:这里其实存在一个归一化和保证非负性的问题，考虑使用sigmoid，因为softmax会平均包括负样本的所有信息
+		else:
+			qk=torch.mm(all_item_embedding,torch.transpose(keys,1,0))
+
 		masked_qk=torch.mul(qk,torch.transpose(UserItemNet_mask,1,0)) #[item_num,user_num] 把负样本设置为0
 		items_relation=torch.mm(masked_qk,all_user_embedding) #[item_num,user_num]x[user_num,dim]->[item_num,dim]
 
@@ -204,9 +207,10 @@ class NCF(nn.Module):
 			P=1/(1+torch.exp(slope_p*(sti-(median+offset))))
 			Cur_scores=R+P+bias
 			return Cur_scores
-
+		
+		prediction,rel_scores,user_id=output #[bs]
+		
 		if self.Cur_mining:
-			prediction,rel_scores,user_id=output #[bs]
 
 			prediction=prediction.sigmoid()
 			rel_scores=rel_scores.sigmoid()
@@ -216,28 +220,43 @@ class NCF(nn.Module):
 
 			median,std=paras[:,0],paras[:,1]
 
-			alpha=1.3
-			Cur=Cur_compute(sti,median,10*torch.exp(-alpha*(median)),10*torch.exp(-alpha*(1-median)),0.5-std,-1).detach()# 从梯度图上摘出去，这只是个权重，不参与更新
+			alpha=self.args.Cur.alpha
+			bias=self.args.Cur.bias
+			Cur=Cur_compute(sti,median,10*torch.exp(-alpha*(median)),10*torch.exp(-alpha*(1-median)),0.5-std,bias).detach()# 从梯度图上摘出去，这只是个权重，不参与更新
 			Cur=torch.clamp(Cur,min=0) # 剔除小于0的项, 这样bias可以设置为-1, 保证Cur in [0,1]
 			print(f"Cur.shape:{Cur.shape}")
 
-			# fuse curiosity into NCF version 1
-			loss_ncf=torch.mean(-Cur*(label*torch.log(prediction+1e-10) + (1-label)*torch.log(1-prediction+1e-10)))
-			loss_rel=torch.mean(-Cur*(label*torch.log(rel_scores+1e-10) + (1-label)*torch.log(1-rel_scores+1e-10)))
-			loss=loss_ncf+loss_rel
-
-			# # fuse curiosity into NCF version 2
-			# prediction,rel_scores,user_id=output #[bs]
-			# loss_acc = self.loss_function(prediction+rel_scores, label)
-			# loss_cur = torch.mean(-Cur*torch.log(prediction+rel_scores+1e-10))
-			# loss=loss_acc + loss_cur
+			if self.args.Cur.fusion=='v1':
+				# fuse curiosity into NCF version 1
+				loss_ncf=torch.mean(-Cur*(label*torch.log(prediction+1e-10) + (1-label)*torch.log(1-prediction+1e-10)))
+				loss_rel=torch.mean(-Cur*(label*torch.log(rel_scores+1e-10) + (1-label)*torch.log(1-rel_scores+1e-10)))
+				loss=self.args.losses.v1.ncf_weight*loss_ncf + self.args.losses.v1.social_weight*loss_rel
+			elif self.args.Cur.fusion=='v2':
+				# fuse curiosity into NCF version 2
+				loss_acc = self.loss_function((prediction+rel_scores)/2, label)
+				loss_cur = torch.mean(-Cur*torch.log((prediction+rel_scores)/2+1e-10))
+				loss=self.args.losses.v2.acc_weight*loss_acc + self.args.losses.v2.cur_weight*loss_cur
+			elif self.args.Cur.fusion=='v3':
+				# fuse curiosity into NCF version 3
+				loss_ncf=torch.mean(label*torch.log(prediction+1e-10) + (1-label)*torch.log(1-prediction+1e-10))
+				loss_rel=torch.mean(label*torch.log(rel_scores+1e-10) + (1-label)*torch.log(1-rel_scores+1e-10))
+				loss_acc = self.args.losses.v3.ncf_weight*loss_ncf + self.args.losses.v3.social_weight*loss_rel
+				loss_cur = self.Huber_loss((prediction+rel_scores)/2,Cur)
+				loss=self.args.losses.v3.acc_weight*loss_acc + self.args.losses.v3.cur_weight*loss_cur
+			elif self.args.Cur.fusion=='v4':
+				# fuse curiosity into NCF version 4
+				loss_ncf=torch.mean(label*torch.log(prediction+1e-10) + (1-label)*torch.log(1-prediction+1e-10))
+				loss_rel=torch.mean(label*torch.log(rel_scores+1e-10) + (1-label)*torch.log(1-rel_scores+1e-10))
+				loss_acc = self.args.losses.v4.ncf_weight*loss_ncf + self.args.losses.v4.social_weight*loss_rel
+				loss_cur = self.args.losses.v4.ncf_huber*self.Huber_loss(prediction,Cur) + self.args.losses.v4.social_huber*self.Huber_loss(rel_scores,Cur)
+				loss=self.args.losses.v4.acc_weight*loss_acc + self.args.losses.v4.cur_weight*loss_cur
 		else:
-			# prediction,rel_scores,user_id=output #[bs]
-			# loss_ncf = self.loss_function(prediction, label)
-			# loss_rel = self.loss_function(rel_scores,label)
-			# loss=loss_ncf+loss_rel
-			prediction,rel_scores,user_id=output #[bs]
-			loss = self.loss_function(prediction+rel_scores, label)
+			if self.args.NCF.criterion=='v1':
+				loss_ncf = self.loss_function(prediction, label)
+				loss_rel = self.loss_function(rel_scores,label)
+				loss=self.args.losses.v1.ncf_weight*loss_ncf + self.args.losses.v1.social_weight*loss_rel
+			elif self.args.NCF.criterion=='v2':
+				loss = self.loss_function((prediction+rel_scores)/2, label)
 		return loss
 	
 	def test(self,batch_user_id): #[bs]
