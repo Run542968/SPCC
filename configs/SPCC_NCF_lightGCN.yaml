@@ -1,0 +1,40 @@
+basic:
+  device: "cuda"
+  seed: 2020
+  data_path: '/home/student/dujiarun/data/'
+  dataset_name: 'movie'
+  batch_size: 8192
+  num_workers: 3
+  epoch_num: 50 
+  model_name: 'NCF'
+
+
+NCF:
+  mode: 'NeuMF-end'
+  dim: 16
+  layers_num: 3
+  score_weight: 1
+  dropout: 0.0
+
+Social:
+  dim: 64
+  score_weight: 1
+
+Cur:
+  mine_interval: 80
+
+optim:
+  lr: 0.001
+  weight_decay: 0
+
+losses:
+  NCF: 
+    weight: 1
+  Social: 
+    bpr_weight: 1
+
+
+test: 
+  interval: 1
+  batch_size: 200
+  k: 20
