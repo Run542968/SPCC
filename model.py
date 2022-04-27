@@ -224,7 +224,7 @@ class NCF(nn.Module):
 			bias=self.args.Cur.bias
 			Cur=Cur_compute(sti,median,10*torch.exp(-alpha*(median)),10*torch.exp(-alpha*(1-median)),0.5-std,bias).detach()# 从梯度图上摘出去，这只是个权重，不参与更新
 			Cur=torch.clamp(Cur,min=0) # 剔除小于0的项, 这样bias可以设置为-1, 保证Cur in [0,1]
-			print(f"Cur.shape:{Cur.shape}")
+
 
 			if self.args.Cur.fusion=='v1':
 				# fuse curiosity into NCF version 1
@@ -238,15 +238,15 @@ class NCF(nn.Module):
 				loss=self.args.losses.v2.acc_weight*loss_acc + self.args.losses.v2.cur_weight*loss_cur
 			elif self.args.Cur.fusion=='v3':
 				# fuse curiosity into NCF version 3
-				loss_ncf=torch.mean(label*torch.log(prediction+1e-10) + (1-label)*torch.log(1-prediction+1e-10))
-				loss_rel=torch.mean(label*torch.log(rel_scores+1e-10) + (1-label)*torch.log(1-rel_scores+1e-10))
+				loss_ncf=torch.mean(-(label*torch.log(prediction+1e-10) + (1-label)*torch.log(1-prediction+1e-10)))
+				loss_rel=torch.mean(-(label*torch.log(rel_scores+1e-10) + (1-label)*torch.log(1-rel_scores+1e-10)))
 				loss_acc = self.args.losses.v3.ncf_weight*loss_ncf + self.args.losses.v3.social_weight*loss_rel
 				loss_cur = self.Huber_loss((prediction+rel_scores)/2,Cur)
 				loss=self.args.losses.v3.acc_weight*loss_acc + self.args.losses.v3.cur_weight*loss_cur
 			elif self.args.Cur.fusion=='v4':
 				# fuse curiosity into NCF version 4
-				loss_ncf=torch.mean(label*torch.log(prediction+1e-10) + (1-label)*torch.log(1-prediction+1e-10))
-				loss_rel=torch.mean(label*torch.log(rel_scores+1e-10) + (1-label)*torch.log(1-rel_scores+1e-10))
+				loss_ncf=torch.mean(-(label*torch.log(prediction+1e-10) + (1-label)*torch.log(1-prediction+1e-10)))
+				loss_rel=torch.mean(-(label*torch.log(rel_scores+1e-10) + (1-label)*torch.log(1-rel_scores+1e-10)))
 				loss_acc = self.args.losses.v4.ncf_weight*loss_ncf + self.args.losses.v4.social_weight*loss_rel
 				loss_cur = self.args.losses.v4.ncf_huber*self.Huber_loss(prediction,Cur) + self.args.losses.v4.social_huber*self.Huber_loss(rel_scores,Cur)
 				loss=self.args.losses.v4.acc_weight*loss_acc + self.args.losses.v4.cur_weight*loss_cur

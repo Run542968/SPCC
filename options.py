@@ -15,8 +15,8 @@ parser.add_argument('--dataset_name', type=str, default='movie',help='dataset na
 parser.add_argument('--model-name', default='NCF', help='name to save model')
 
 # # Cur setting
-# parser.add_argument('--Cur.random_init',type=lambda x: x.lower() == 'true',default=True)
 parser.add_argument('--Cur.mine_interval',type=int,default=80)
+parser.add_argument('--Cur.fusion',type=str,default='v1',help='the mode of fusing curiosity')
 
 # optim setting
 parser.add_argument('--optim.lr',type=float,default=0.001,help='the lr of optimizer')
@@ -24,11 +24,13 @@ parser.add_argument('--optim.lr',type=float,default=0.001,help='the lr of optimi
 
 # NCF setting
 parser.add_argument('--NCF.mode',type=str,default='NeuMF-end',help='the mode of NCF')
+parser.add_argument('--NCF.criterion',type=str,default='v1',help='the mode of loss')
+
 
 # losses setting
 # parser.add_argument('--losses.cur_weight',type=float,default=1,help="the weight of cur loss")
 # parser.add_argument('--losses.Social.bpr_weight',type=float,default=1,help="the weight of Social loss")
-# parser.add_argument('--losses.Social.reg_weight',type=float,default=1e-4,help="the weight of Social reg loss")
+parser.add_argument('--losses.v4.cur_weight',type=float,default=1,help="the weight of cur loss")
 
 
 # for testing

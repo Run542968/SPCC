@@ -25,7 +25,7 @@ CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_19 --dataset_name 'mo
 # BCE(y,per_scores)+BCE(y,soc_scores) -> BCE(y,per_scores+soc_scores); sigmoid normalization
 CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_20 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.05 --epoch_num 100 --Cur.mine_interval 300
 # BCE(y,per_scores)+BCE(y,soc_scores) -> BCE(y,(per_scores+soc_scores)/2); sigmoid normalization
-CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_21 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 300
+CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_21 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 300 --NCF.criterion 'v2'
 
 
 ## add Cur_mining(中值越靠近左侧，左侧的斜率越小)
@@ -47,3 +47,12 @@ CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_10 --dataset_name 'mo
 CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_11 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100
 # bias=0; offset=0.5-std; sigmoid normalization; fix testing about _get_relation(); bi-sigmoid testing; cur_mining when epoch equals 80, and use this result for later
 CUDA_VISIBLE_DEVICES=0 python main.py --model-name NCF_Cur_12 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100
+
+# BCE(y,per_scores)+BCE(y,soc_scores) -> BCE(y,(per_scores+soc_scores)/2); sigmoid normalization
+CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_22 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v2' --Cur.fusion 'v4'
+# BCE(y,per_scores)+BCE(y,soc_scores); sigmoid normalization
+CUDA_VISIBLE_DEVICES=5 python main.py --model-name NCF_Cur_23 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.001
+# BCE(y,per_scores)+BCE(y,soc_scores); sigmoid normalization; fix a bug of loss_BCE after cur mining(Cur_23少了负号)
+CUDA_VISIBLE_DEVICES=5 python main.py --model-name NCF_Cur_24 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.001
+# BCE(y,per_scores)+BCE(y,soc_scores); sigmoid normalization; fix a bug of loss_BCE after cur mining(Cur_23少了负号)
+CUDA_VISIBLE_DEVICES=6 python main.py --model-name NCF_Cur_25 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.00001
