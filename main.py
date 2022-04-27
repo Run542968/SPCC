@@ -80,10 +80,14 @@ if __name__=="__main__":
          model._get_relation() # get relation with updated parameters
          test(dataset,model,logger,writer,epoch,args)
       
-      if (epoch+1) % args.Cur.mine_interval == 0: # 指定interval挖掘
-         logger.info("-------------------------Cur Mining------------------------------") 
-         Cur_mining(model,dataset,args)
-
+      if args.Cur.mining_mode=='v1':
+         if (epoch+1) % args.Cur.mine_interval == 0: # 指定interval挖掘,之后的epoch都用这次挖掘的结果
+            logger.info("-------------------------Cur Mining------------------------------") 
+            Cur_mining(model,dataset,args)
+      elif args.Cur.mining_mode=='v2':
+         if (epoch+1) >= args.Cur.mine_interval: # 大于某个setting后，每个epoch挖掘一次
+            logger.info("-------------------------Cur Mining------------------------------") 
+            Cur_mining(model,dataset,args)
       
       # save model and cur_model
       ckpt_path = './ckpt/'+args.basic.model_name+'/'+'Epoch_'+str(epoch)+'.pkl'

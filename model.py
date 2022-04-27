@@ -218,13 +218,21 @@ class NCF(nn.Module):
 			sti=torch.abs(prediction-rel_scores) #[bs]
 			paras=self.para_lookup[user_id]#[bs,2]
 
-			median,std=paras[:,0],paras[:,1]
+			median,mean,std=paras[:,0],paras[:,1],paras[:2]
 
 			alpha=self.args.Cur.alpha
 			bias=self.args.Cur.bias
-			Cur=Cur_compute(sti,median,10*torch.exp(-alpha*(median)),10*torch.exp(-alpha*(1-median)),0.5-std,bias).detach()# 从梯度图上摘出去，这只是个权重，不参与更新
-			Cur=torch.clamp(Cur,min=0) # 剔除小于0的项, 这样bias可以设置为-1, 保证Cur in [0,1]
 
+			if self.args.Cur.pivot_mode=='median':
+				Cur=Cur_compute(sti,median,10*torch.exp(-alpha*(median)),10*torch.exp(-alpha*(1-median)),0.5-std,bias).detach()# 从梯度图上摘出去，这只是个权重，不参与更新
+			elif self.args.Cur.pivot_mode=='mean':
+				Cur=Cur_compute(sti,mean,10*torch.exp(-alpha*(mean)),10*torch.exp(-alpha*(1-mean)),0.5-std,bias).detach()# 从梯度图上摘出去，这只是个权重，不参与更新
+			elif self.args.Cur.pivot_model=='fusion':
+				Cur=Cur_compute(sti,mean,10*torch.exp(-alpha*(median)),10*torch.exp(-alpha*(1-median)),0.5-std,bias).detach()# 从梯度图上摘出去，这只是个权重，不参与更新
+			else:
+				assert("Dont't define this pivot_model. ")
+			
+			Cur=torch.clamp(Cur,min=0) # 剔除小于0的项, 这样bias可以设置为-1, 保证Cur in [0,1]
 
 			if self.args.Cur.fusion=='v1':
 				# fuse curiosity into NCF version 1
@@ -250,6 +258,8 @@ class NCF(nn.Module):
 				loss_acc = self.args.losses.v4.ncf_weight*loss_ncf + self.args.losses.v4.social_weight*loss_rel
 				loss_cur = self.args.losses.v4.ncf_huber*self.Huber_loss(prediction,Cur) + self.args.losses.v4.social_huber*self.Huber_loss(rel_scores,Cur)
 				loss=self.args.losses.v4.acc_weight*loss_acc + self.args.losses.v4.cur_weight*loss_cur
+			else:
+				assert("Dont't define this Cur_fusion_model. ")
 		else:
 			if self.args.NCF.criterion=='v1':
 				loss_ncf = self.loss_function(prediction, label)
@@ -257,6 +267,8 @@ class NCF(nn.Module):
 				loss=self.args.losses.v1.ncf_weight*loss_ncf + self.args.losses.v1.social_weight*loss_rel
 			elif self.args.NCF.criterion=='v2':
 				loss = self.loss_function((prediction+rel_scores)/2, label)
+			else:
+				assert("Dont't define this NCF_criterion mode. ")
 		return loss
 	
 	def test(self,batch_user_id): #[bs]
@@ -339,12 +351,12 @@ class NCF(nn.Module):
 
 		head_embedding=users_embedding+items_relation #[1,dim]+[n,dim]->[n,dim] 
 		head_embedding=head_embedding.float()
-		# print(f"head_embedding.shape:{head_embedding.shape}")
+
 		# scores_s=torch.sigmoid(torch.mm(head_embedding,torch.transpose(items_embedding,1,0)))#[bs,dim]x[dim,items_num]->[bs,items_num]
 		scores_s=torch.sum(torch.mul(head_embedding,items_embedding),dim=1).sigmoid() #[n,dim]*[n,dim]->[n,dim]->[n]
-		# print(f"scores_s.shape:{scores_s.shape}")
+
 		sti=torch.abs(prediction-scores_s)
 		median=torch.median(sti)
-		# mean=torch.mean(sti)
+		mean=torch.mean(sti)
 		std=torch.std(sti)
-		return sti,median,std #[n]
+		return sti,median,mean,std #[n]

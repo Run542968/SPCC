@@ -17,6 +17,8 @@ parser.add_argument('--model-name', default='NCF', help='name to save model')
 # # Cur setting
 parser.add_argument('--Cur.mine_interval',type=int,default=80)
 parser.add_argument('--Cur.fusion',type=str,default='v1',help='the mode of fusing curiosity')
+parser.add_argument('--Cur.pivot_mode',type=str,default='median',help='the mode of pivot setting')
+
 
 # optim setting
 parser.add_argument('--optim.lr',type=float,default=0.001,help='the lr of optimizer')

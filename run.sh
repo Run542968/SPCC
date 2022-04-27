@@ -56,3 +56,19 @@ CUDA_VISIBLE_DEVICES=5 python main.py --model-name NCF_Cur_23 --dataset_name 'mo
 CUDA_VISIBLE_DEVICES=5 python main.py --model-name NCF_Cur_24 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.001
 # BCE(y,per_scores)+BCE(y,soc_scores); sigmoid normalization; fix a bug of loss_BCE after cur mining(Cur_23少了负号)
 CUDA_VISIBLE_DEVICES=6 python main.py --model-name NCF_Cur_25 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.00001
+# BCE(y,per_scores)+BCE(y,soc_scores); sigmoid normalization; fix a bug of loss_BCE after cur mining(Cur_23少了负号)
+CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_26 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.01
+# BCE(y,per_scores)+BCE(y,soc_scores); sigmoid normalization; fix a bug of loss_BCE after cur mining(Cur_23少了负号)
+CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_27 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.1
+# BCE(y,per_scores)+BCE(y,soc_scores); sigmoid normalization; fix a bug of loss_BCE after cur mining(Cur_23少了负号)
+CUDA_VISIBLE_DEVICES=4 python main.py --model-name NCF_Cur_28 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.1
+# BCE(y,per_scores)+BCE(y,soc_scores); sigmoid normalization; fix a bug of loss_BCE after cur mining(Cur_23少了负号)
+CUDA_VISIBLE_DEVICES=4 python main.py --model-name NCF_Cur_29 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.001 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.1
+
+## 把median改为mean
+# BCE(y,per_scores)+BCE(y,soc_scores); sigmoid normalization; fix a bug of loss_BCE after cur mining(Cur_23少了负号)
+CUDA_VISIBLE_DEVICES=7 python main.py --model-name NCF_Cur_30 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.1 --Cur.pivot_mode 'mean'
+CUDA_VISIBLE_DEVICES=6 python main.py --model-name NCF_Cur_31 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 1 --Cur.pivot_mode 'mean'
+
+
+## 改一下cur_mining,以上都是在80epoch挖掘一次,然后不挖掘,现在改成80epoch后都挖掘一次
