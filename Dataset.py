@@ -118,7 +118,7 @@ class Spcc_Dataset(Dataset):
         # print(f"Ending epoch negative data sampling ...")
 
     def _generate_UserItemNet(self):
-        print("Contructing UserItemNet...")
+        print("Contructing UserItemNet for accelerating get relation...")
         UserItemNet=sp.dok_matrix((self.user_num,self.item_num),dtype=np.float32)
         for user in self.train_user_item.keys():
             for item in self.train_user_item[user]:

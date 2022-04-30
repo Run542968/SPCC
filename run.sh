@@ -42,12 +42,13 @@ CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_9 --dataset_name 'mov
 # no normalization,第80个epoch mining一次,后面一直用这次挖掘过的信息做权重,bias=0
 CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_10 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100
 
-## update Cur_mining(中值靠近左侧，左侧斜率越大)
+## update Cur_mining(中值靠近左侧，左侧斜率越大), 这以下用cur进行re-weighting
 # bias=0; offset=0.5-std; no sigmoid normalization; fix testing about _get_relation(); bi-sigmoid testing; cur_mining when epoch equals 80, and use this result for later
 CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_11 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100
 # bias=0; offset=0.5-std; sigmoid normalization; fix testing about _get_relation(); bi-sigmoid testing; cur_mining when epoch equals 80, and use this result for later
 CUDA_VISIBLE_DEVICES=0 python main.py --model-name NCF_Cur_12 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100
 
+## 下面是把Cur作为回归标签
 # BCE(y,per_scores)+BCE(y,soc_scores) -> BCE(y,(per_scores+soc_scores)/2); sigmoid normalization
 CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_22 --dataset_name 'movie'  --batch_size 16384 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v2' --Cur.fusion 'v4'
 # BCE(y,per_scores)+BCE(y,soc_scores); sigmoid normalization
@@ -70,5 +71,21 @@ CUDA_VISIBLE_DEVICES=4 python main.py --model-name NCF_Cur_29 --dataset_name 'mo
 CUDA_VISIBLE_DEVICES=7 python main.py --model-name NCF_Cur_30 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 0.1 --Cur.pivot_mode 'mean'
 CUDA_VISIBLE_DEVICES=6 python main.py --model-name NCF_Cur_31 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v4' --losses.v4.cur_weight 1 --Cur.pivot_mode 'mean'
 
+## 新增了一种v5的好奇心融合方式, 设置一个阈值把Cur作为伪标签
+# --Cur.fusion 'v5'; --losses.v5.cur_weight 0.01
+CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_32 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v5' --losses.v5.cur_weight 0.01 --Cur.pivot_mode 'mean'
+# --Cur.fusion 'v5'; --losses.v5.cur_weight 0.001
+CUDA_VISIBLE_DEVICES=4 python main.py --model-name NCF_Cur_33 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v5' --losses.v5.cur_weight 0.001 --Cur.pivot_mode 'mean'
+# --Cur.fusion 'v6'; --losses.v5.cur_weight 0.01
+CUDA_VISIBLE_DEVICES=5 python main.py --model-name NCF_Cur_34 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v6' --losses.v6.cur_weight 0.01 --Cur.pivot_mode 'mean'
+# --Cur.fusion 'v5'; --losses.v5.cur_weight 0.01; epoch_num 200
+CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_35 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v5' --losses.v5.cur_weight 0.01 --Cur.pivot_mode 'mean'
 
-## 改一下cur_mining,以上都是在80epoch挖掘一次,然后不挖掘,现在改成80epoch后都挖掘一次
+## 用Cur做re-weighting
+CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_36 --dataset_name 'movie'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 100 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean'
+
+
+
+
+### Amazon Book
+CUDA_VISIBLE_DEVICES=4 python main.py --model-name NCF_Cur_Book_0 --dataset_name 'book'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean' --test.batch_size 50

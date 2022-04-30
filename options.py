@@ -33,11 +33,13 @@ parser.add_argument('--NCF.criterion',type=str,default='v1',help='the mode of lo
 # parser.add_argument('--losses.cur_weight',type=float,default=1,help="the weight of cur loss")
 # parser.add_argument('--losses.Social.bpr_weight',type=float,default=1,help="the weight of Social loss")
 parser.add_argument('--losses.v4.cur_weight',type=float,default=1,help="the weight of cur loss")
-
+parser.add_argument('--losses.v5.cur_weight',type=float,default=1,help="the weight of cur loss")
+parser.add_argument('--losses.v6.cur_weight',type=float,default=1,help="the weight of cur loss")
 
 # for testing
 parser.add_argument('--test.k', type=int,default=20)
 parser.add_argument('--test.interval',type=int,default=1)
+parser.add_argument('--test.batch_size',type=int,default=200)
 
 def _process_args_over_yaml():
     args=vars(parser.parse_args())

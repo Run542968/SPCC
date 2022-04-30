@@ -5,7 +5,7 @@ basic:
   dataset_name: 'movie'
   batch_size: 8192
   num_workers: 3
-  epoch_num: 50 
+  epoch_num: 100 
   model_name: 'NCF'
 
 
@@ -29,6 +29,7 @@ Cur:
   bias: -1
   fusion: 'v1'
   pivot_mode: 'median'
+  spot_threshold: 0.5
 
 
 optim:
@@ -52,6 +53,20 @@ losses:
     social_weight: 1
     ncf_huber: 1
     social_huber: 1
+    acc_weight: 1
+    cur_weight: 1
+  v5: 
+    ncf_weight: 1
+    social_weight: 1
+    ncf_log: 1
+    social_log: 1
+    acc_weight: 1
+    cur_weight: 1
+  v6: 
+    ncf_weight: 1
+    social_weight: 1
+    ncf_log: 1
+    social_log: 1
     acc_weight: 1
     cur_weight: 1
 

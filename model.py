@@ -27,8 +27,9 @@ class NCF(nn.Module):
 		self.user_num=user_num
 		self.UserItemNet=UserItemNet
 
-		# self.train_user_item=train_user_item
-		# self.train_item_user=self._transform_dict(self.train_user_item)
+		# get train_item_user dict
+		self.train_user_item=train_user_item
+		self.train_item_user=self._transform_dict(self.train_user_item)
 
 		self.embed_user_GMF = nn.Embedding(user_num, self.factor_num)
 		self.embed_item_GMF = nn.Embedding(item_num, self.factor_num)
@@ -109,46 +110,51 @@ class NCF(nn.Module):
 			self.predict_layer.weight.data.copy_(0.5 * predict_weight)
 			self.predict_layer.bias.data.copy_(0.5 * precit_bias)
     
-	# def _transform_dict(self,train_user_item):
-		
-	# 	train_item_user=dict()
-		
-	# 	for user in train_user_item.keys():
-	# 		for item in train_user_item[user]:
-	# 			if item not in train_item_user.keys():
-	# 				train_item_user[item]=set()
-	# 			train_item_user[item].add(user)
-				
-	# 	return train_item_user
-
-	# def _get_relation(self):
-	# 	'''
-	# 	初始for循环版本,没利用矩阵
-	# 	'''
-	# 	train_item_user_dict=self.train_item_user
-    #     # print("bagin _get_ralation")
-
-	# 	items_relation=torch.from_numpy(np.array([])).to(self.args.basic.device)
-	# 	for item in range(self.item_num):
-	# 		item_id=torch.from_numpy(np.array(item)).to(self.args.basic.device)#[1]
-	# 		# print("item_id:",item_id)
-	# 		users_id=torch.from_numpy(np.array(list(train_item_user_dict[item]))).to(self.args.basic.device)#[user_nums]
-	# 		# print("user_id:",users_id)
-	# 		item_embedding=self.item_rel_lookup(item_id).unsqueeze(0)#[1,dim]
-	# 		# print("item_embedding:",item_embedding)
-	# 		users_embedding=self.user_rel_lookup(users_id)#[user_nums,dim]
-	# 		# print("users_embedding:",users_embedding)
-	# 		keys=self.att(users_embedding)#[user_nums,dim]
-
-	# 		qk=torch.mm(item_embedding,torch.transpose(keys,1,0))#[1,user_nums]
-	# 		relation=torch.mm(qk,users_embedding)#[1,dim]
-	# 		items_relation=torch.cat((items_relation,relation),dim=0)
-
-	# 	self.items_relation=items_relation.to(self.args.basic.device)
-	
-	def _get_relation(self):
+	def _transform_dict(self,train_user_item):
 		'''
-		改良版本,利用矩阵和mask
+		转换train_user_item -> train_item_user, 用于构造relation
+		'''
+		
+		train_item_user=dict()
+		
+		for user in train_user_item.keys():
+			for item in train_user_item[user]:
+				if item not in train_item_user.keys():
+					train_item_user[item]=set()
+				train_item_user[item].add(user)
+				
+		return train_item_user
+
+	def _get_relation_large(self):
+		'''
+		初始for循环版本,没利用矩阵
+		对于大数据集, 得使用这个版本
+		'''
+		train_item_user_dict=self.train_item_user
+        # print("bagin _get_ralation")
+
+		items_relation=torch.from_numpy(np.array([])).to(self.args.basic.device)
+		for item in range(self.item_num):
+			item_id=torch.from_numpy(np.array(item)).to(self.args.basic.device)#[1]
+			# print("item_id:",item_id)
+			users_id=torch.from_numpy(np.array(list(train_item_user_dict[item]))).to(self.args.basic.device)#[user_nums]
+			# print("user_id:",users_id)
+			item_embedding=self.item_rel_lookup(item_id).unsqueeze(0)#[1,dim]
+			# print("item_embedding:",item_embedding)
+			users_embedding=self.user_rel_lookup(users_id)#[user_nums,dim]
+			# print("users_embedding:",users_embedding)
+			keys=self.att(users_embedding)#[user_nums,dim]
+
+			qk=torch.mm(item_embedding,torch.transpose(keys,1,0))#[1,user_nums]
+			relation=torch.mm(qk,users_embedding)#[1,dim]
+			items_relation=torch.cat((items_relation,relation),dim=0)
+
+		self.items_relation=items_relation
+	
+	def _get_relation_small(self):
+		'''
+		改良版本,利用矩阵和mask加速
+		对于小数据集比较适用, 大数据集显存会不够
 		'''
 		all_user_id=torch.arange(self.user_num).to(self.args.basic.device)
 		all_item_id=torch.arange(self.item_num).to(self.args.basic.device)
@@ -166,6 +172,18 @@ class NCF(nn.Module):
 		items_relation=torch.mm(masked_qk,all_user_embedding) #[item_num,user_num]x[user_num,dim]->[item_num,dim]
 
 		self.items_relation=items_relation
+
+	def _get_relation(self):
+		'''
+		根据不同规模的数据集, 选择不同的relation generation方式
+		'''
+		if self.args.basic.dataset_name=='movie':
+			self._get_relation_small()
+		elif self.args.basic.dataset_name=='book':
+			self._get_relation_large()
+		else:
+			assert("Don't define this method. ")
+
 
 	def forward(self, user, item):
 		if not self.model == 'MLP':
@@ -218,7 +236,7 @@ class NCF(nn.Module):
 			sti=torch.abs(prediction-rel_scores) #[bs]
 			paras=self.para_lookup[user_id]#[bs,2]
 
-			median,mean,std=paras[:,0],paras[:,1],paras[:2]
+			median,mean,std=paras[:,0],paras[:,1],paras[:,2]
 
 			alpha=self.args.Cur.alpha
 			bias=self.args.Cur.bias
@@ -258,6 +276,26 @@ class NCF(nn.Module):
 				loss_acc = self.args.losses.v4.ncf_weight*loss_ncf + self.args.losses.v4.social_weight*loss_rel
 				loss_cur = self.args.losses.v4.ncf_huber*self.Huber_loss(prediction,Cur) + self.args.losses.v4.social_huber*self.Huber_loss(rel_scores,Cur)
 				loss=self.args.losses.v4.acc_weight*loss_acc + self.args.losses.v4.cur_weight*loss_cur
+			elif self.args.Cur.fusion=='v5':
+				# fuse curiosity into NCF version 5
+				loss_ncf=torch.mean(-(label*torch.log(prediction+1e-10) + (1-label)*torch.log(1-prediction+1e-10)))
+				loss_rel=torch.mean(-(label*torch.log(rel_scores+1e-10) + (1-label)*torch.log(1-rel_scores+1e-10)))
+				loss_acc = self.args.losses.v5.ncf_weight*loss_ncf + self.args.losses.v5.social_weight*loss_rel
+				pseudo_label=torch.where(Cur > self.args.Cur.spot_threshold,1,0)
+				loss_ncf_log=torch.mean(-(pseudo_label*torch.log(prediction+1e-10) + (1-pseudo_label)*torch.log(1-prediction+1e-10)))
+				loss_rel_log=torch.mean(-(pseudo_label*torch.log(rel_scores+1e-10) + (1-pseudo_label)*torch.log(1-rel_scores+1e-10)))
+				loss_cur = self.args.losses.v5.ncf_log*loss_ncf_log + self.args.losses.v5.social_log*loss_rel_log
+				loss=self.args.losses.v5.acc_weight*loss_acc + self.args.losses.v5.cur_weight*loss_cur
+			elif self.args.Cur.fusion=='v6':
+				# fuse curiosity into NCF version 6
+				loss_ncf=torch.mean(-(label*torch.log(prediction+1e-10) + (1-label)*torch.log(1-prediction+1e-10)))
+				loss_rel=torch.mean(-(label*torch.log(rel_scores+1e-10) + (1-label)*torch.log(1-rel_scores+1e-10)))
+				loss_acc = self.args.losses.v6.ncf_weight*loss_ncf + self.args.losses.v6.social_weight*loss_rel
+				pseudo_label=torch.where(Cur > self.args.Cur.spot_threshold,1,0)
+				loss_ncf_log=torch.mean(-Cur*(pseudo_label*torch.log(prediction+1e-10) + (1-pseudo_label)*torch.log(1-prediction+1e-10)))
+				loss_rel_log=torch.mean(-Cur*(pseudo_label*torch.log(rel_scores+1e-10) + (1-pseudo_label)*torch.log(1-rel_scores+1e-10)))
+				loss_cur = self.args.losses.v6.ncf_log*loss_ncf_log + self.args.losses.v6.social_log*loss_rel_log
+				loss=self.args.losses.v6.acc_weight*loss_acc + self.args.losses.v6.cur_weight*loss_cur
 			else:
 				assert("Dont't define this Cur_fusion_model. ")
 		else:
