@@ -125,7 +125,7 @@ class NCF(nn.Module):
 				
 		return train_item_user
 
-	def _get_relation_large(self):
+	def _get_relation_slow(self):
 		'''
 		初始for循环版本,没利用矩阵
 		对于大数据集, 得使用这个版本
@@ -145,13 +145,60 @@ class NCF(nn.Module):
 			# print("users_embedding:",users_embedding)
 			keys=self.att(users_embedding)#[user_nums,dim]
 
-			qk=torch.mm(item_embedding,torch.transpose(keys,1,0))#[1,user_nums]
+			if self.args.Social.sigmoid_norm:
+				qk=torch.sigmoid(torch.mm(item_embedding,torch.transpose(keys,1,0))) #[item_num,dim]x[dim,user_num]->[item_num,user_num] #NOTE:这里其实存在一个归一化和保证非负性的问题，考虑使用sigmoid，因为softmax会平均包括负样本的所有信息
+			else:
+				qk=torch.mm(item_embedding,torch.transpose(keys,1,0))
+
 			relation=torch.mm(qk,users_embedding)#[1,dim]
 			items_relation=torch.cat((items_relation,relation),dim=0)
 
 		self.items_relation=items_relation
-	
-	def _get_relation_small(self):
+
+	def _get_relation_median(self):
+		'''
+		for循环 + 利用矩阵
+		对于大数据集, 使用串行太慢了, 得使用这个版本
+		由于UserItemNet太大, 所以采用这种分batch的方法, 但是又太占内存！！！
+		'''
+
+		relation_batch=self.args.Social.relation_batch
+		UserItemNet_mask=np.transpose(self.UserItemNet.toarray()) # [user_num,item_num]->[item_num,user_num] 图太大，需要分开搞
+		# print("UserItemNet_mask.shape: ",UserItemNet_mask.shape)
+		# print("UserItemNet_mask.type: ",type(UserItemNet_mask))
+
+		items_relation=torch.from_numpy(np.array([])).to(self.args.basic.device)
+		relation_batch_num=self.item_num//relation_batch
+		# print(f"relation_batch_num: {relation_batch_num}")
+		item_id=np.arange(self.item_num)
+
+		for i in range(relation_batch_num + 1):
+			batch_item=item_id[relation_batch*i : relation_batch*(i+1)]
+			batch_UserItemNet=torch.from_numpy(UserItemNet_mask[batch_item,:]).to(self.args.basic.device) # 这里batch_item得在cpu上
+			# print(f"batch_UserItemNet.shape:{batch_UserItemNet.shape}")
+
+			batch_item=torch.from_numpy(batch_item).to(self.args.basic.device) #[bs,]
+			# print(f"batch_item.shape:{batch_item.shape}")
+			all_user_id=torch.arange(self.user_num).to(self.args.basic.device)
+
+			all_user_embedding=self.user_rel_lookup(all_user_id)#[user_num,dim]
+			batch_item_embedding=self.item_rel_lookup(batch_item)#[bs,dim]
+
+			keys=self.att(all_user_embedding) # [user_num,dim]->[user_num,dim]
+			# print(f"keys.shape:{keys.shape}")
+			if self.args.Social.sigmoid_norm:
+				qk=torch.sigmoid(torch.mm(batch_item_embedding,torch.transpose(keys,1,0))) #[bs,dim]x[dim,user_num]->[bs,user_num] #NOTE:这里其实存在一个归一化和保证非负性的问题，考虑使用sigmoid，因为softmax会平均包括负样本的所有信息
+			else:
+				qk=torch.mm(batch_item_embedding,torch.transpose(keys,1,0))
+			
+			masked_qk=torch.mul(qk,batch_UserItemNet) #[bs,user_num] 把负样本设置为0
+			batch_items_relation=torch.mm(masked_qk,all_user_embedding) #[bs,user_num]x[user_num,dim]->[bs,dim]
+			# print(f"batch_item_relation.shape:{batch_items_relation.shape}")
+			items_relation=torch.cat([items_relation,batch_items_relation],dim=0) #final:[item_num,dim]
+
+		self.items_relation=items_relation
+
+	def _get_relation_fast(self):
 		'''
 		改良版本,利用矩阵和mask加速
 		对于小数据集比较适用, 大数据集显存会不够
@@ -178,11 +225,14 @@ class NCF(nn.Module):
 		根据不同规模的数据集, 选择不同的relation generation方式
 		'''
 		if self.args.basic.dataset_name=='movie':
-			self._get_relation_small()
+			self._get_relation_fast()
 		elif self.args.basic.dataset_name=='book':
-			self._get_relation_large()
+			self._get_relation_slow()
+			# self._get_relation_median()
+		elif self.args.basic.dataset_name=='music':
+			self._get_relation_fast()
 		else:
-			assert("Don't define this method. ")
+			raise AssertionError("Don't define this method. ")
 
 
 	def forward(self, user, item):
@@ -248,7 +298,7 @@ class NCF(nn.Module):
 			elif self.args.Cur.pivot_model=='fusion':
 				Cur=Cur_compute(sti,mean,10*torch.exp(-alpha*(median)),10*torch.exp(-alpha*(1-median)),0.5-std,bias).detach()# 从梯度图上摘出去，这只是个权重，不参与更新
 			else:
-				assert("Dont't define this pivot_model. ")
+				raise AssertionError("Dont't define this pivot_model. ")
 			
 			Cur=torch.clamp(Cur,min=0) # 剔除小于0的项, 这样bias可以设置为-1, 保证Cur in [0,1]
 
@@ -297,7 +347,7 @@ class NCF(nn.Module):
 				loss_cur = self.args.losses.v6.ncf_log*loss_ncf_log + self.args.losses.v6.social_log*loss_rel_log
 				loss=self.args.losses.v6.acc_weight*loss_acc + self.args.losses.v6.cur_weight*loss_cur
 			else:
-				assert("Dont't define this Cur_fusion_model. ")
+				raise AssertionError("Dont't define this Cur_fusion_model. ")
 		else:
 			if self.args.NCF.criterion=='v1':
 				loss_ncf = self.loss_function(prediction, label)
@@ -306,7 +356,7 @@ class NCF(nn.Module):
 			elif self.args.NCF.criterion=='v2':
 				loss = self.loss_function((prediction+rel_scores)/2, label)
 			else:
-				assert("Dont't define this NCF_criterion mode. ")
+				raise AssertionError("Dont't define this NCF_criterion mode. ")
 		return loss
 	
 	def test(self,batch_user_id): #[bs]

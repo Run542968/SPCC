@@ -88,4 +88,7 @@ CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_36 --dataset_name 'mo
 
 
 ### Amazon Book
-CUDA_VISIBLE_DEVICES=4 python main.py --model-name NCF_Cur_Book_0 --dataset_name 'book'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean' --test.batch_size 50
+CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_Book_0 --dataset_name 'book'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean' --test.batch_size 20 --Social.relation_batch 100
+
+### LastFM
+CUDA_VISIBLE_DEVICES=1 python main.py --model-name NCF_Cur_music_0 --dataset_name 'music'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean' --test.batch_size 20

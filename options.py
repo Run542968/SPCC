@@ -11,7 +11,6 @@ parser.add_argument('--seed', type=int, default=0,help='random seed (default: 0)
 parser.add_argument('--batch_size', type=int, default=8192,help='batch_size')
 parser.add_argument('--epoch_num', type=int, default=50,help='epoch_num')
 parser.add_argument('--dataset_name', type=str, default='movie',help='dataset name')
-
 parser.add_argument('--model-name', default='NCF', help='name to save model')
 
 # # Cur setting
@@ -28,13 +27,14 @@ parser.add_argument('--optim.lr',type=float,default=0.001,help='the lr of optimi
 parser.add_argument('--NCF.mode',type=str,default='NeuMF-end',help='the mode of NCF')
 parser.add_argument('--NCF.criterion',type=str,default='v1',help='the mode of loss')
 
+# Social setting
+parser.add_argument('--Social.relation_batch',type=int,default=100)
 
 # losses setting
-# parser.add_argument('--losses.cur_weight',type=float,default=1,help="the weight of cur loss")
-# parser.add_argument('--losses.Social.bpr_weight',type=float,default=1,help="the weight of Social loss")
 parser.add_argument('--losses.v4.cur_weight',type=float,default=1,help="the weight of cur loss")
 parser.add_argument('--losses.v5.cur_weight',type=float,default=1,help="the weight of cur loss")
 parser.add_argument('--losses.v6.cur_weight',type=float,default=1,help="the weight of cur loss")
+
 
 # for testing
 parser.add_argument('--test.k', type=int,default=20)

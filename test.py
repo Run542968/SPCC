@@ -111,6 +111,7 @@ if __name__=="__main__":
     # load model
     model = NCF(dataset.user_num, 
                 dataset.item_num,
+                dataset.train_user_item,
                 dataset.UserItemNet,
                 args,
                 None,

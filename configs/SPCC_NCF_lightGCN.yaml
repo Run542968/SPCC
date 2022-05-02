@@ -21,6 +21,7 @@ Social:
   dim: 64
   score_weight: 1
   sigmoid_norm: True
+  relation_batch: 100
 
 Cur:
   mining_mode: 'v1'

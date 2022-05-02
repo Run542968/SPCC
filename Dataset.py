@@ -61,7 +61,9 @@ class Spcc_Dataset(Dataset):
         return train_interaction_num
 
     def _compute_item_user_num(self,train_user_item,item_hitRate):
-        return len(train_user_item.keys()),len(item_hitRate.keys())
+        user_num,item_num=len(train_user_item.keys()),len(item_hitRate.keys())
+        print(f"user_num: {user_num}, item_num: {item_num}")
+        return user_num,item_num
 
     def _train_sampling(self):
         '''
