@@ -2,6 +2,7 @@ import torch
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import recall_score
 import numpy as np
+import math
 
 def eval_auc_acc(SPCC_model,inputs,args):
     SPCC_model.eval()
@@ -35,19 +36,49 @@ def eval_auc_acc_v2(pred_scores,labels):
     return auc,acc,n_hit,n_total
 
 
-def getDCG(id_list):
-    return np.sum(
-        np.divide(np.power(2, id_list) - 1, np.log2(np.arange(id_list.shape[0], dtype=np.float32) + 2)),
-        dtype=np.float32)
+# # 这个输入有问题，因为gt_id和topk_id不一定一样长
+# def get_ndcg(topk_id,gt_id): 
 
-def get_ndcg(topk_id,gt_id):
-    idealist = np.ones_like(gt_id)
-    idcg=getDCG(idealist)
-    rank_list=np.array([1 if (id in gt_id) else 0 for id in topk_id])
-    dcg=getDCG(rank_list)
-    # print("%.2f %.2f" % (dcg,idcg))
-    ndcg=dcg/idcg
-    return ndcg
+#     def getDCG(id_list):
+#         return np.sum(
+#             np.divide(np.power(2, id_list) - 1, np.log2(np.arange(id_list.shape[0], dtype=np.float32) + 2)),
+#             dtype=np.float32)
+
+#     idealist = np.ones_like(gt_id)
+#     idcg=getDCG(idealist)
+#     rank_list=np.array([1 if (id in gt_id) else 0 for id in topk_id])
+#     dcg=getDCG(rank_list)
+#     # print("%.2f %.2f" % (dcg,idcg))
+#     ndcg=dcg/idcg
+#     return ndcg
+
+
+def get_ndcg(topk_id, gt_id):
+    '''
+    Following 2021 SIGIR EDUA
+    '''
+    def getDCG(topk_id, gt_id):
+        dcg = 0.0
+        for i in range(len(topk_id)):
+            item = topk_id[i]
+            if item in gt_id:
+                dcg += 1.0 / math.log(i + 2)
+        return  dcg
+
+    def getIDCG(topk_id, gt_id):
+        idcg = 0.0
+        i = 0
+        for item in topk_id:
+            if item in gt_id:
+                idcg += 1.0 / math.log(i + 2)
+                i += 1
+        return idcg
+
+    dcg = getDCG(topk_id, gt_id)
+    idcg = getIDCG(topk_id, gt_id)
+    if idcg == 0:
+        return 0
+    return dcg / idcg
 
 def get_precision(topk_id,gt_id):
     TP=0

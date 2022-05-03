@@ -91,4 +91,18 @@ CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_36 --dataset_name 'mo
 CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_Book_0 --dataset_name 'book'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean' --test.batch_size 20 --Social.relation_batch 100
 
 ### LastFM
-CUDA_VISIBLE_DEVICES=1 python main.py --model-name NCF_Cur_music_0 --dataset_name 'music'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean' --test.batch_size 20
+CUDA_VISIBLE_DEVICES=1 python main.py --model-name NCF_Cur_music_0 --dataset_name 'music'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 80 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean'
+# 去掉Cur mining
+CUDA_VISIBLE_DEVICES=1 python main.py --model-name NCF_Cur_music_1 --dataset_name 'music'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 800 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean'
+# 去掉Cur mining; lr=0.01
+CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_music_2 --dataset_name 'music'  --batch_size 8192 --test.interval 1 --optim.lr 0.01 --epoch_num 200 --Cur.mine_interval 800 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean'
+# 去掉Cur mining; --losses.v1.social_weight=0.1
+CUDA_VISIBLE_DEVICES=3 python main.py --model-name NCF_Cur_music_3 --dataset_name 'music'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 800 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean' --losses.v1.social_weight=0.1
+# 去掉Cur mining; epoch_num=500; 看看模型的性能瓶颈在哪里
+CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_music_4 --dataset_name 'music'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 500 --Cur.mine_interval 800 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean'
+# Cur mining; --Cur.mine_interval 180
+CUDA_VISIBLE_DEVICES=1 python main.py --model-name NCF_Cur_music_5 --dataset_name 'music'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 200 --Cur.mine_interval 180 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean'
+# Cur mining; --Cur.mine_interval 480; 看看性能瓶颈在哪里
+CUDA_VISIBLE_DEVICES=1 python main.py --model-name NCF_Cur_music_6 --dataset_name 'music'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 500 --Cur.mine_interval 480 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean'
+# Cur mining; --Cur.mine_interval 380; 看看性能瓶颈在哪里
+CUDA_VISIBLE_DEVICES=2 python main.py --model-name NCF_Cur_music_7 --dataset_name 'music'  --batch_size 8192 --test.interval 1 --optim.lr 0.02 --epoch_num 500 --Cur.mine_interval 380 --NCF.criterion 'v1' --Cur.fusion 'v1' --Cur.pivot_mode 'mean'

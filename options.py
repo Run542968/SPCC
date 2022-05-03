@@ -34,6 +34,7 @@ parser.add_argument('--Social.relation_batch',type=int,default=100)
 parser.add_argument('--losses.v4.cur_weight',type=float,default=1,help="the weight of cur loss")
 parser.add_argument('--losses.v5.cur_weight',type=float,default=1,help="the weight of cur loss")
 parser.add_argument('--losses.v6.cur_weight',type=float,default=1,help="the weight of cur loss")
+parser.add_argument('--losses.v1.social_weight',type=float,default=1,help="the weight of social loss")
 
 
 # for testing
