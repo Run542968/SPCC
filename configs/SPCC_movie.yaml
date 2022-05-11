@@ -1,0 +1,51 @@
+basic:
+  device: "cuda"
+  seed: 2020
+  data_path: '/home/student/dujiarun/data/'
+  dataset_name: 'movie'
+  batch_size: 8192
+  num_workers: 3
+  epoch_num: 100 
+  criterion_mode: 'v1'
+  model_name: 'SPCC'
+
+
+Personal:
+  dim: 32
+  use_mlp: False
+  layers: 3
+
+Social:
+  dim: 32
+  sigmoid_norm: True
+  relation_batch: 100
+
+Cur:
+  mining_mode: 'v1'
+  mine_interval: 80
+  alpha: 1.3
+  bias: -1
+  fusion: 'v1'
+  pivot_mode: 'mean'
+  spot_threshold: 0.5
+
+optim:
+  lr: 0.02
+  weight_decay: 0
+
+losses:
+  v1:
+    P_weight: 1
+    S_weight: 1
+  Cur_v1:
+    P_weight: 1
+    S_weight: 1
+
+
+test: 
+  interval: 1
+  batch_size: 200
+  k: 20
+  Pscore_weight: 1
+  Sscore_weight: 1
+  post_process: 'sigmoid'

@@ -17,7 +17,7 @@ class Spcc_Dataset(Dataset):
         self.user_num,self.item_num=self._compute_item_user_num(self.train_user_item,self.item_hitRate)
         self.train_interaction_num=self._compute_train_interaction_num(self.train_user_item)
         self.UserItemNet=self._generate_UserItemNet()
-        self._train_sampling()
+        self._train_sampling() # 需要先采样一遍，用于__len__方法
         # self.csr_adj_tatrix=self._get_adj_matrix()
 
     
@@ -61,6 +61,9 @@ class Spcc_Dataset(Dataset):
         return train_interaction_num
 
     def _compute_item_user_num(self,train_user_item,item_hitRate):
+        '''
+        这里能够用item_hitRate计算item_num的前提是构造数据集的时候保证训练集中的每个物品出现过(和用户有交互), 每个用户都有交互物品
+        '''
         user_num,item_num=len(train_user_item.keys()),len(item_hitRate.keys())
         print(f"user_num: {user_num}, item_num: {item_num}")
         return user_num,item_num
@@ -80,24 +83,7 @@ class Spcc_Dataset(Dataset):
         #         row_data=[user,p_item,n_item]
         #         train_data.append(row_data)
 
-        # # 和LightGCN完全一样
-        # train_data=[]
-        # users = np.random.randint(0, self.user_num, self.train_interaction_num)
-        # for user in users:
-        #     posForUser = list(self.train_user_item[user]) # 得到这个用户的所有正样本list
-        #     if len(posForUser) == 0: # 如果这个用户没有正样本，跳过
-        #         continue
-        #     posindex = np.random.randint(0, len(posForUser)) # 从这个用户的所有正样本随机抽一个
-        #     p_item = posForUser[posindex]
-        #     while True:
-        #         n_item = np.random.randint(0, self.item_num) # 从所有item中随机抽一个
-        #         if n_item in posForUser: # 如果抽中的在正样本集中，继续抽，知道抽出一个负样本
-        #             continue
-        #         else:
-        #             break
-        #     train_data.append([user, p_item, n_item]) # 添加到训练集
-
-        # Following LightGCN, For CrossEntropy format
+        # 和LightGCN完全一样
         train_data=[]
         users = np.random.randint(0, self.user_num, self.train_interaction_num)
         for user in users:
@@ -112,8 +98,25 @@ class Spcc_Dataset(Dataset):
                     continue
                 else:
                     break
-            train_data.append([user, p_item, 1]) # 添加到训练集
-            train_data.append([user, n_item, 0])
+            train_data.append([user, p_item, n_item]) # 添加到训练集
+
+        # # Following LightGCN, For CrossEntropy format
+        # train_data=[]
+        # users = np.random.randint(0, self.user_num, self.train_interaction_num)
+        # for user in users:
+        #     posForUser = list(self.train_user_item[user]) # 得到这个用户的所有正样本list
+        #     if len(posForUser) == 0: # 如果这个用户没有正样本，跳过
+        #         continue
+        #     posindex = np.random.randint(0, len(posForUser)) # 从这个用户的所有正样本随机抽一个
+        #     p_item = posForUser[posindex]
+        #     while True:
+        #         n_item = np.random.randint(0, self.item_num) # 从所有item中随机抽一个
+        #         if n_item in posForUser: # 如果抽中的在正样本集中，继续抽，知道抽出一个负样本
+        #             continue
+        #         else:
+        #             break
+        #     train_data.append([user, p_item, 1]) # 添加到训练集
+        #     train_data.append([user, n_item, 0])
 
         self.train_data_np=np.array(train_data)
 

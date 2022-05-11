@@ -1,6 +1,6 @@
 import torch
 import os
-from model import NCF
+from model import SPCC
 import options
 from Dataset import Spcc_Dataset
 from torch.utils.data import DataLoader
@@ -51,13 +51,11 @@ if __name__=="__main__":
                            drop_last=False)
 
    # load model
-   model = NCF(dataset.user_num, 
+   model = SPCC(dataset.user_num, 
                dataset.item_num,
                dataset.train_user_item,
                dataset.UserItemNet,
-               args,
-               None,
-               None)
+               args)
    model=model.to(args.basic.device)
    logger.info(model)
 

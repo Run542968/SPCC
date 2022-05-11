@@ -1,8 +1,7 @@
 import torch
 from Dataset import Spcc_Dataset
-from model import NCF
+from model import SPCC
 from eval import get_recall,get_precision,get_ndcg,get_novelty
-from torch.utils.data import DataLoader
 import numpy as np
 from utils.Utils import get_logger,setup_seed
 import options
@@ -33,11 +32,10 @@ def test(dataset,model,logger,writer,epoch,args):
         for i in range(batch_num+1):
             batch_user=user_id[batch_size*i:batch_size*(i+1)]
 
-            prediction,scores_s=model.test(torch.from_numpy(batch_user).long().to(args.basic.device))
-
-            pred_scores=(args.NCF.score_weight*prediction + args.Social.score_weight*scores_s).detach().cpu() #[bs,item_num]
-            # pred_scores=(0*prediction + args.Social.score_weight*scores_s.sigmoid()).detach().cpu() #[bs,item_num]
-            # pred_scores=(args.NCF.score_weight*prediction.sigmoid() + args.Social.score_weight*scores_s.sigmoid()).detach().cpu() #[bs,item_num]
+            P_score,S_score=model.test(torch.from_numpy(batch_user).long().to(args.basic.device))
+            
+            alpha=float(args.test.alpha)
+            pred_scores=(alpha*P_score + (1-alpha)*S_score).detach().cpu() #[bs,item_num]
 
             for j in range(len(batch_user)):
                 user=batch_user[j]
@@ -52,7 +50,7 @@ def test(dataset,model,logger,writer,epoch,args):
                 mask=torch.from_numpy(np.where(np.isin(np.arange(item_num),train_item),-1e8,1))
                 scores=torch.mul(mask,scores)
                 
-                # # 另一种去除训练中正样本的方式
+                # # 另一种去除训练中正样本的方式, 这种直接批量索引的方式是numpy等数组类型特有的
                 # scores[train_item]=-1e8
 
                 topk_scores,topk_id=torch.topk(scores,args.test.k)
@@ -109,17 +107,16 @@ if __name__=="__main__":
     dataset=Spcc_Dataset(args)
 
     # load model
-    model = NCF(dataset.user_num, 
+    model = SPCC(dataset.user_num, 
                 dataset.item_num,
                 dataset.train_user_item,
                 dataset.UserItemNet,
-                args,
-                None,
-                None)
+                args)
 
     # load model parameters
-    model_name='NCF_Cur_12'
+    model_name='SPCC_movie_nocur_0'
     test_epoch=99
+    print('model_name:',model_name)
     model.load_state_dict(torch.load(r'./ckpt/' + model_name + '/Epoch_' + str(test_epoch) + '.pkl'))
 
     model.to(args.basic.device)
@@ -128,3 +125,6 @@ if __name__=="__main__":
     writer=None
     model._get_relation()
     test(dataset,model,logger,writer,test_epoch,args)
+
+    # python test.py --config_yaml 'configs/SPCC_movie.yaml' --test.alpha 0.85 --Personal.use_mlp True --test.post_process 'none' --test.k 20
+    # CUDA_VISIBLE_DEVICES=2 python test.py --config_yaml 'configs/SPCC_music.yaml' --test.alpha 0.99 --Personal.use_mlp True --test.post_process 'sigmoid' --test.k 20

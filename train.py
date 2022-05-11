@@ -9,11 +9,11 @@ def train(train_loader,model,optimizer,logger,writer,epoch,args):
     train_loader.dataset._train_sampling()
 
     for i ,batch_data in enumerate(train_loader):
-        user_id,item_id,label=batch_data[:,0],batch_data[:,1],batch_data[:,2]
+        user_id,p_item,n_item=batch_data[:,0],batch_data[:,1],batch_data[:,2]
         output=model(user_id.to(args.basic.device),
-                    item_id.to(args.basic.device))                                                                         
-        loss=model.criterion(output,
-                            label.float().to(args.basic.device))
+                    p_item.to(args.basic.device),
+                    n_item.to(args.basic.device))                                                                         
+        loss=model.criterion(output)
 
         # optimization
         optimizer.zero_grad()
@@ -24,8 +24,8 @@ def train(train_loader,model,optimizer,logger,writer,epoch,args):
 
         
         loss=loss.cpu().detach().numpy()
-        logger.info("Epoch:{}-batch:{},ncf_total_loss_dict:{}".format(epoch,i,{"ncf_total_loss":loss}))
+        logger.info("Epoch:{}-batch:{},spcc_total_loss_dict:{}".format(epoch,i,{"spcc_total_loss_dict":loss}))
 
-        writer.add_scalar('loss/ncf_total_loss',loss, epoch*len(train_loader)+i)
+        writer.add_scalar('loss/spcc_total_loss_dict',loss, epoch*len(train_loader)+i)
 
 
